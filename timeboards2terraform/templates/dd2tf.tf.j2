@@ -1,0 +1,56 @@
+# Create a new Datadog timeboard
+resource "datadog_timeboard" "{{ dash.title | lower | replace (' ','_') | replace('.','_') }}" {
+  title       = "{{ dash.title }}"
+  description = "{{ dash.description }} (Managed by Terraform)"
+  read_only   = {{ dash.read_only | lower }}
+
+{% for graph in dash.graphs %}
+  graph {
+    title = "{{ graph.title }}"
+    viz   = "{{ graph.definition.viz }}"
+
+  {%- for request in graph.definition.requests %}
+    request {
+    {%- for key,value in request.iteritems() %}
+      {%- if key == 'style' %}
+      style {
+        {%- for s_key, s_val in value.iteritems() %}
+          {{ s_key }} = "{{ s_val }}"
+          {%- endfor %}
+      }
+      {%- elif key == 'conditional_formats' %}
+        {%- for cf in value %}
+      conditional_format {
+          {%- for cf_key, cf_val in cf.iteritems() %}
+        {{ cf_key }} = "{{ cf_val }}"
+          {%- endfor %}
+      }
+        {%- endfor %}
+      {%- elif key == 'metadata' %}
+      # metadata {
+        {%- for key, val in value.iteritems() %}
+      #  "{{ key }}" {
+          {%- for md_key, md_val in val.iteritems() %}
+      #  {{ md_key }} = "{{ md_val }}"
+      #  }
+          {%- endfor %}
+        {%- endfor %}
+      {%- else %}
+      {{ key }} = "{{ value }}"
+      {%- endif %}
+    {%- endfor %}
+    }
+  {%- endfor %}
+}
+{%- endfor %}
+
+{%- if dash.template_variables %}
+{%- for template_variable in dash.template_variables %}
+  template_variable {
+{%- for key,value in template_variable.iteritems() %}
+      {{ key }}    = "{{ value }}"
+{%- endfor %}
+  }
+{%- endfor %}
+{%- endif %}
+}
